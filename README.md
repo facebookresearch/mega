@@ -50,6 +50,10 @@ Task | Description                          | # params | Download
 3. Mega decoder (LM) is implemented in [fairseq/models/mega_lm.py](https://github.com/facebookresearch/mega/blob/main/fairseq/models/mega_lm.py).
 4. Mega encoder-decoder (NMT) is implemented in [fairseq/models/mega.py](https://github.com/facebookresearch/mega/blob/main/fairseq/models/mega.py).
 
+## Tips
+1. Models are trained with float32, as at the time of development, fft and rfft with fp16 were not supported by pytorch 1.11.0. We'll try to use fp16 with the new version of pytorch.
+2. If you'd like to apply Mega to your task/data, besides architecture size, hyperparameters that are worth considering and tuning include learning rate (lr) and weight decay (wd). We find that tuning wd is a more effective regularization to Mega (in contrast to tuning dropout rates for Transformers).
+Suggested wd values include `0.01, 0.05, 0.1` (larger models typically need larger wd, please refer to appendix of our paper for hyperparameters we have used). For lr scheduler, linear lr decay and cosine lr decay schedules are more effective than the inverse square root decay scheduler for Mega.
 ## License
 mega is under Attribution-NonCommercial 4.0 license. The license applies to model checkpoints as well.
 
