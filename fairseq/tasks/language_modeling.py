@@ -207,9 +207,9 @@ class LanguageModelingTask(FairseqTask):
                 k, v = self.args.valid_block.split(":")
                 chunk_size = int(v) if k == "size" else math.ceil(sum(dataset.sizes) / float(v))
                 # to prevent the samples being filtered
-                # if k == "splits":
-                #     # when k is splits, one sample can be extremely long as chunk_size,
-                #     self.args.max_tokens_valid = chunk_size * 15
+                if k == "splits":
+                    # when k is splits, one sample can be extremely long as chunk_size,
+                    self.args.max_tokens_valid = chunk_size * 10
             else:
                 chunk_size = self.args.tokens_per_sample
             self.chunk_size = chunk_size

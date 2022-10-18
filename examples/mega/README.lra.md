@@ -127,6 +127,6 @@ python -u train.py ${DATA} \
     --dropout 0.0 --attention-dropout 0.0 --act-dropout 0.0 --weight-decay 0.01 \
     --batch-size 2 --sentence-avg --update-freq 8 --max-update 125000 \
     --lr-scheduler linear_decay --total-num-update 125000 --end-learning-rate 0.0 \
-    --warmup-updates ${WARMUP} --warmup-init-lr '1e-07' --warmup-power 2 --keep-last-epochs 1 --max-sentences-valid 12 \
+    --warmup-updates 25000 --warmup-init-lr '1e-07' --warmup-power 2 --keep-last-epochs 1 --max-sentences-valid 12 \
     --save-dir ${SAVE} --log-format simple --log-interval 100 --num-workers 0
 ```
