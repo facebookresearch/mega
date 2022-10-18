@@ -10,6 +10,9 @@ This is the PyTorch implementation of the Mega paper. This folder is based on th
 
 >Xuezhe Ma*, Chunting Zhou*, Xiang Kong, Junxian He, Liangke Gui, Graham Neubig, Jonathan May, Luke Zettlemoyer
 
+## Updates
+1. [Oct 17th] `--fp16` training has been supported.
+
 ## Setup
 This repository requires Python 3.8+ and Pytorch 1.11+.
 
@@ -51,9 +54,11 @@ Task | Description                          | # params | Download
 4. Mega encoder-decoder (NMT) is implemented in [fairseq/models/mega.py](https://github.com/facebookresearch/mega/blob/main/fairseq/models/mega.py).
 
 ## Tips
-1. Models are trained with float32, as at the time of development, fft and rfft with fp16 were not supported by pytorch 1.11.0. We'll try to use fp16 with the new version of pytorch.
-2. If you'd like to apply Mega to your task/data, besides architecture size, hyperparameters that are worth considering and tuning include learning rate (lr) and weight decay (wd). We find that tuning wd is a more effective regularization to Mega (in contrast to tuning dropout rates for Transformers).
+1. The released model checkpoints were trained with float32.
+2. When training Mega, please note the following hyperparamters that decide the size of the model. `--encoder/decoder-embed-dim` is the input embedding dimension. `--encoder/decoder-hidden-dim` is the expanding dimension of value vectors of attention. `--encoder/decoder-ffn-embed-dim` is the FFN intermediate dimension. `--encoder/decoder-hidden-dim` and `--encoder/decoder-ffn-embed-dim` is usually the same. **To obtain similar number of parameters as Transformers, they are usually set to be 2 times `--encoder/decoder-embed-dim`**. `--encoder/decoder-z-dim` is the shrinking dimension of the query/key vectors of attention, which is usually set to be 128 or 1/4 of `--encoder/decoder-embed-dim`.
+3. If you'd like to apply Mega to your task/data, besides architecture size, hyperparameters that are worth considering and tuning include learning rate (lr) and weight decay (wd). We find that tuning wd is a more effective regularization to Mega (in contrast to tuning dropout rates for Transformers).
 Suggested wd values include `0.01, 0.05, 0.1` (larger models typically need larger wd, please refer to appendix of our paper for hyperparameters we have used). For lr scheduler, linear lr decay and cosine lr decay schedules are more effective than the inverse square root decay scheduler for Mega.
+
 ## License
 mega is under Attribution-NonCommercial 4.0 license. The license applies to model checkpoints as well.
 

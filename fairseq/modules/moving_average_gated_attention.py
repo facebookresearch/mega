@@ -143,9 +143,9 @@ class MovingAverageGatedAttention(nn.Module):
             return qk
 
         if self.attention_activation == 'relu2':
-            attn_weights = utils.relu2(qk)
+            attn_weights = utils.relu2(qk).type_as(qk)
         elif self.attention_activation == 'laplace':
-            attn_weights = utils.laplace(qk)
+            attn_weights = utils.laplace(qk).type_as(qk)
         else:
             raise ValueError('Unknown attention activation function: {}'.format(self.attention_activation))
 
@@ -182,7 +182,7 @@ class MovingAverageGatedAttention(nn.Module):
         if before_attn_fn:
             return qk
 
-        attn_weights = utils.softmax(qk, dim=-1, onnx_trace=self.onnx_trace)
+        attn_weights = utils.softmax(qk, dim=-1, onnx_trace=self.onnx_trace).type_as(qk)
         return attn_weights
 
     def forward(

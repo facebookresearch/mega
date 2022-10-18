@@ -18,7 +18,7 @@ from fairseq.incremental_decoding_utils import with_incremental_state
 class MultiHeadEMA(nn.Module):
     """Exponential Moving Average Layer.
 
-    See "" for more details.
+    See "https://arxiv.org/abs/2209.10655" for more details.
     """
 
     def __init__(
@@ -71,49 +71,47 @@ class MultiHeadEMA(nn.Module):
             nn.init.normal_(self.gamma, mean=0.0, std=1.0)
             nn.init.normal_(self.omega, mean=0.0, std=1.0)
 
-    def calc_coeffs(self):
+    def _calc_coeffs(self):
+        self._coeffs = None
         # D x N x 1
         p = torch.sigmoid(self.delta)
         alpha = torch.sigmoid(self.alpha)
         q = 1.0 - p * alpha
-        self._coeffs = (p, q)
         return p, q
 
-    def compute_kernel(self, length: int):
+    def _compute_kernel(self, length: int):
+        self._kernel = None
         # D x N x 1
-        p, q = self.calc_coeffs()
+        p, q = self._calc_coeffs()
         # D x N x L
         vander = torch.arange(length).to(p).view(1, 1, length) * torch.log(q)
         kernel = (p * self.beta) * torch.exp(vander)
         # D x L
-        self._kernel = torch.einsum('dnl,dn->dl', kernel, self.gamma * self.scale)
-        return self._kernel
+        return torch.einsum('dnl,dn->dl', kernel, self.gamma * self.scale)
+
+    def coeffs(self):
+        if self.training:
+            return self._calc_coeffs()
+        else:
+            if self._coeffs is None:
+                self._coeffs = self._calc_coeffs()
+            return self._coeffs
 
     def kernel(self, length: int):
         kernel_size = length if self.truncation is None else min(self.truncation, length)
         if self.training:
-            return self.compute_kernel(kernel_size)
-        elif self._kernel is None:
-            return self.compute_kernel(kernel_size)
-        elif self._kernel.size(-1) < kernel_size:
-            return self.compute_kernel(kernel_size)
+            return self._compute_kernel(kernel_size)
         else:
+            if self._kernel is None or self._kernel.size(-1) < kernel_size:
+                self._kernel = self._compute_kernel(kernel_size)
             return self._kernel[..., :kernel_size]
-
-    def coeffs(self):
-        if self.training:
-            return self.calc_coeffs()
-        elif self._coeffs is None:
-            return self.calc_coeffs()
-        else:
-            return self._coeffs
 
     def step(self, x, length, hx=None):
         if length == 1:
             return self.one_step(x, hx=hx)
 
         # D x N x 1
-        p, q = self.calc_coeffs()
+        p, q = self.coeffs()
         # D x N x L+1
         vander = torch.arange(length + 1).to(p).view(1, 1, length + 1) * torch.log(q)
         vander = torch.exp(vander)
@@ -132,10 +130,11 @@ class MultiHeadEMA(nn.Module):
         kernel = (p * self.beta) * vander
         k = torch.einsum('dnl,dn->dl', kernel, self.gamma * self.scale)
 
-        k_f = torch.fft.rfft(k, n=2 * length)
-        x_f = torch.fft.rfft(x, n=2 * length)
+        k_f = torch.fft.rfft(k.float(), n=2 * length)
+        x_f = torch.fft.rfft(x.float(), n=2 * length)
         # B x D x L
         out = torch.fft.irfft(x_f * k_f, n=2 * length)[..., 0:length]
+        out = out.type_as(x)
         if ox is not None:
             out = out + ox
 
@@ -206,10 +205,11 @@ class MultiHeadEMA(nn.Module):
                 fft_len = fft_len + kernel_size - 1
                 s = 2 * kernel_size - 2
 
-            k_f = torch.fft.rfft(k, n=2 * fft_len)
-            x_f = torch.fft.rfft(x, n=2 * fft_len)
+            k_f = torch.fft.rfft(k.float(), n=2 * fft_len)
+            x_f = torch.fft.rfft(x.float(), n=2 * fft_len)
             # B x D x L
             out = torch.fft.irfft(x_f * k_f, n=2 * fft_len)[..., s:s + seq_len]
+            out = out.type_as(x)
             # B x D x L -> L x B x D
             out = F.silu(out.permute(2, 0, 1) + residual)
 
