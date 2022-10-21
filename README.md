@@ -6,7 +6,7 @@ This is the PyTorch implementation of the Mega paper. This folder is based on th
  <img src="docs/mega.png" width="700"/>
 </p>
 
->[Mega: Moving Average Equipped Gated Attention]()
+>[Mega: Moving Average Equipped Gated Attention](https://arxiv.org/abs/2209.10655)
 
 >Xuezhe Ma*, Chunting Zhou*, Xiang Kong, Junxian He, Liangke Gui, Graham Neubig, Jonathan May, Luke Zettlemoyer
 
