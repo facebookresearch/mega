@@ -60,7 +60,7 @@ Task | Description                          | # params | Download
 Suggested wd values include `0.01, 0.05, 0.1` (larger models typically need larger wd, please refer to appendix of our paper for hyperparameters we have used). For lr scheduler, linear lr decay and cosine lr decay schedules are more effective than the inverse square root decay scheduler for Mega.
 
 ## License
-mega is under Attribution-NonCommercial 4.0 license. The license applies to model checkpoints as well.
+mega is under MIT license. The license applies to model checkpoints as well.
 
 ## Citation
 
