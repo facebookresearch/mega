@@ -13,7 +13,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from fairseq import utils
-from fairseq.checkpoint_utils import prune_state_dict
 from fairseq.data import Dictionary
 from fairseq.models import FairseqDecoder, FairseqEncoder
 from torch import Tensor
@@ -89,6 +88,7 @@ class BaseFairseqModel(nn.Module):
         this additionally "upgrades" *state_dicts* from old checkpoints.
         """
         self.upgrade_state_dict(state_dict)
+        from fairseq.checkpoint_utils import prune_state_dict
         new_state_dict = prune_state_dict(state_dict, args)
         return super().load_state_dict(new_state_dict, strict)
 
@@ -432,6 +432,7 @@ class FairseqMultiModel(BaseFairseqModel):
         this additionally "upgrades" *state_dicts* from old checkpoints.
         """
         self.upgrade_state_dict(state_dict)
+        from fairseq.checkpoint_utils import prune_state_dict
         new_state_dict = prune_state_dict(state_dict, args)
         return super().load_state_dict(new_state_dict, strict)
 
