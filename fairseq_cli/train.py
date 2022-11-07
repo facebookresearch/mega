@@ -149,6 +149,13 @@ def main(args):
     train_meter.stop()
     logger.info("done training in {:.1f} seconds".format(train_meter.sum))
 
+    if hasattr(args, 'is_book') and args.is_book:
+        # evaluate with best checkpoint
+        _ = trainer.load_checkpoint(os.path.join(args.save_dir, "checkpoint_best.pt"))
+        valid_losses = validate_mega_lm(args, trainer, task, epoch_itr, ['valid'], num_tokens=3007061 if hasattr(args, 'is_book') and args.is_book else -1)
+        task.load_dataset("test", combine=False, epoch=1)
+        test_losses = validate_mega_lm(args, trainer, task, epoch_itr, ['test'], num_tokens=6966499 if hasattr(args, 'is_book') and args.is_book else -1)
+
 
 def should_stop_early(args, valid_loss):
     # skip check if no validation was done in the current epoch
@@ -271,7 +278,8 @@ def validate_and_save(args, trainer, task, epoch_itr, valid_subsets, end_of_epoc
     valid_losses = [None]
     if do_validate:
         if hasattr(task, 'is_mega_lm') and task.is_mega_lm:
-            valid_losses = validate_mega_lm(args, trainer, task, epoch_itr, valid_subsets)
+            # is book refers to PG-19 only for now
+            valid_losses = validate_mega_lm(args, trainer, task, epoch_itr, valid_subsets, num_tokens=3007061 if hasattr(args, 'is_book') and args.is_book else 0)
         else:
             valid_losses = validate(args, trainer, task, epoch_itr, valid_subsets)
 
@@ -348,7 +356,7 @@ def validate(args, trainer, task, epoch_itr, subsets):
     return valid_losses
 
 
-def validate_mega_lm(args, trainer, task, epoch_itr, subsets):
+def validate_mega_lm(args, trainer, task, epoch_itr, subsets, num_tokens=0):
     """Evaluate the model on the validation set(s) and return the losses.
        Validate for language modeling task, specifically mega LM. """
 
@@ -385,14 +393,14 @@ def validate_mega_lm(args, trainer, task, epoch_itr, subsets):
         )
 
         chunk_size = args.decoder_chunk_size
-
+        total_size = int(args.valid_block.split(":")[-1]) if hasattr(args, 'is_book') and args.is_book else chunk_size
         # create a new root metrics aggregator so validation metrics
         # don't pollute other aggregators (e.g., train meters)
         with metrics.aggregate(new_root=True) as agg:
             for sample in progress:
-                # todo: recalculate a larger tokens_per_batch at validation time
                 if not sample:
-                    for _ in range(0, chunk_size, chunk_size):
+                    # it should be the last few null batches, use the previous total_size to do the dummy iteration
+                    for _ in range(0, total_size, chunk_size):
                         incremental_states = torch.jit.annotate(Dict[str, Dict[str, Optional[Tensor]]], {})
                         trainer.mega_lm_valid_step(sample, incremental_states=incremental_states)
                     continue
@@ -401,7 +409,6 @@ def validate_mega_lm(args, trainer, task, epoch_itr, subsets):
                 total_size = sample['net_input']['src_tokens'].size(1)
                 batch_size = len(sample['net_input']['src_lengths'])
                 incremental_states = torch.jit.annotate(Dict[str, Dict[str, Optional[Tensor]]], {})
-
                 for i in range(0, total_size, chunk_size):
                     new_sample = {
                         'id': sample['id'],
@@ -417,6 +424,10 @@ def validate_mega_lm(args, trainer, task, epoch_itr, subsets):
 
         # log validation stats
         stats = get_valid_stats(args, trainer, agg.get_smoothed_values())
+        if num_tokens > 0:
+            # this is specifically used for PG-19 as it's measured as a word-level perplexity
+            stats['word ppl'] = utils.get_perplexity(agg['nll_loss'].sum / num_tokens)
+            # stats['num_bpes'] = agg['nll_loss'].count
         progress.print(stats, tag=subset, step=trainer.get_num_updates())
 
         valid_losses.append(stats[args.best_checkpoint_metric])
