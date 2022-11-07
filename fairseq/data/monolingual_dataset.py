@@ -61,7 +61,7 @@ class MonolingualDataset(FairseqDataset):
     """
 
     def __init__(self, dataset, sizes, src_vocab, tgt_vocab, add_eos_for_other_targets, shuffle,
-                 targets=None, add_bos_token=False):
+                 targets=None, add_bos_token=False, pad_to_a_length=-1):
         self.dataset = dataset
         self.sizes = np.array(sizes)
         self.vocab = src_vocab
@@ -75,6 +75,7 @@ class MonolingualDataset(FairseqDataset):
         if targets is not None and len(targets) == 0:
             targets = None
         self.targets = targets
+        self.pad_to_a_length = pad_to_a_length
 
     def __getitem__(self, index):
         if self.targets is not None:
@@ -92,6 +93,7 @@ class MonolingualDataset(FairseqDataset):
             source = self.dataset[index]
             target = None
         source, target = self._maybe_add_bos(source, target)
+        source, target = self._maybe_pad(source, target)
         return {'id': index, 'source': source, 'target': target}
 
     def __len__(self):
@@ -150,6 +152,13 @@ class MonolingualDataset(FairseqDataset):
             return _filter(target)
         return target
 
+    def _maybe_pad(self, source, target):
+        if self.pad_to_a_length > 0:
+            source = torch.cat([source, source.new([self.vocab.pad()] * (self.pad_to_a_length - len(source)))])
+            if target is not None:
+                target = torch.cat([target, target.new([self.tgt_vocab.pad()] * (self.pad_to_a_length - len(target)))])
+        return source, target
+
     def collater(self, samples):
         """Merge a list of samples to form a mini-batch.
 
@@ -176,14 +185,14 @@ class MonolingualDataset(FairseqDataset):
     def num_tokens(self, index):
         """Return the number of tokens in a sample. This value is used to
         enforce ``--max-tokens`` during batching."""
-        if hasattr(self.dataset, 'left_pad_to_fixed_size') and self.dataset.left_pad_to_fixed_size:
+        if hasattr(self.dataset, 'max_example_size') and self.pad_to_a_length > 0:
             return self.dataset.max_example_size
         return self.sizes[index]
 
     def size(self, index):
         """Return an example's size as a float or tuple. This value is used when
         filtering a dataset with ``--max-positions``."""
-        if hasattr(self.dataset, 'left_pad_to_fixed_size') and self.dataset.left_pad_to_fixed_size:
+        if hasattr(self.dataset, 'max_example_size') and self.pad_to_a_length > 0:
             return self.dataset.max_example_size
         return self.sizes[index]
 

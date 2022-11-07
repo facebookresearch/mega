@@ -3,6 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+from email.policy import default
 import logging
 import math
 import os
@@ -103,6 +104,8 @@ class LanguageModelingTask(FairseqTask):
         parser.add_argument('--valid-block', default="size:100000000", help="either size:value or splits:value, "
                                                                             "the former is the block size, "
                                                                             "the latter is the number of blocks")
+
+        parser.add_argument('--is-book', default=False, action='store_true', help="LM on super long documents, e.g. PG-19")
         # fmt: on
 
     def __init__(self, args, dictionary, output_dictionary=None, targets=None):
@@ -232,13 +235,14 @@ class LanguageModelingTask(FairseqTask):
             # to prevent the samples being filtered
             if k == 'size':
                 logger.info("Max document length of {} set = {}, number of documents = {}.".format(split, max(dataset.sizes), len(dataset.sizes)))
-                self.args.max_tokens_valid = max(dataset.sizes) * 5
+                # self.args.max_tokens_valid = max(dataset.sizes) * 50
 
         add_eos_for_other_targets = (
             self.args.sample_break_mode is not None
             and self.args.sample_break_mode != "none"
         )
 
+        # to ensure the same number of forward passes at inference time, we pad all valid docs to the same length
         self.datasets[split] = self._initialize_dataset(
             dataset=dataset,
             sizes=dataset.sizes,
@@ -248,6 +252,7 @@ class LanguageModelingTask(FairseqTask):
             shuffle=True,
             targets=self.targets,
             add_bos_token=self.args.add_bos_token,
+            pad_to_a_length=-1 if (not self.args.is_book) and split != 'train' else dataset.max_example_size,
         )
 
     def _initialize_dataset(self, **kwargs):
@@ -382,8 +387,8 @@ class LanguageModelingTask(FairseqTask):
         if (
             not hasattr(dataset.dataset, 'variant_block_multiple_max') or
                 (hasattr(dataset.dataset, 'variant_block_multiple_max') and dataset.dataset.variant_block_multiple_max == 1)
-        ):
-            # valid / test of mega LM or normal LM
+        ):  
+            # a hack: in the book case, we still do sharding for Mega LM
             if sharding:
                 # normal LM
                 batch_iter = super().get_batch_iterator(
@@ -392,13 +397,21 @@ class LanguageModelingTask(FairseqTask):
                     seed=seed, num_shards=num_shards, shard_id=shard_id, num_workers=num_workers, epoch=epoch,
                 )
             else:
-                # Mega LM
-                batch_iter = super().get_batch_iterator(
-                    dataset, max_tokens=self.args.max_tokens_valid, max_sentences=max_sentences, max_positions=10000000,
-                    ignore_invalid_inputs=ignore_invalid_inputs,
-                    required_batch_size_multiple=required_batch_size_multiple,
-                    seed=seed, num_shards=1, shard_id=0, num_workers=num_workers, epoch=epoch,
-                )
+                # valid / test of Mega LM
+                if self.args.is_book:
+                    batch_iter = super().get_batch_iterator(
+                        dataset, max_tokens=self.args.max_tokens_valid, max_sentences=max_sentences, max_positions=1000000000,
+                        ignore_invalid_inputs=ignore_invalid_inputs,
+                        required_batch_size_multiple=required_batch_size_multiple,
+                        seed=seed, num_shards=num_shards, shard_id=shard_id, num_workers=num_workers, epoch=epoch,
+                    )
+                else:
+                    batch_iter = super().get_batch_iterator(
+                        dataset, max_tokens=self.args.max_tokens_valid, max_sentences=max_sentences, max_positions=10000000,
+                        ignore_invalid_inputs=ignore_invalid_inputs,
+                        required_batch_size_multiple=required_batch_size_multiple,
+                        seed=seed, num_shards=1, shard_id=0, num_workers=num_workers, epoch=epoch,
+                    )
             # already done in super().get_batch_iterator
             # self.dataset_to_epoch_iter[dataset] = batch_iter
             return batch_iter

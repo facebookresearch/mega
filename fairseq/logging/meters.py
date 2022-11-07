@@ -104,7 +104,7 @@ class AverageMeter(Meter):
         if self.round is not None and val is not None:
             val = safe_round(val, self.round)
         return val
-
+        
 
 class TimeMeter(Meter):
     """Computes the average occurrence of some event per second"""

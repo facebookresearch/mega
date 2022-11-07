@@ -574,7 +574,7 @@ def mega_lm_adaptive_base(args):
 
 
 @register_model_architecture('mega_lm', 'mega_lm_enwik8_base')
-def mega_lm_adaptive_big_enwik8(args):
+def mega_lm_base_enwik8(args):
     args.decoder_layers = getattr(args, 'decoder_layers', 12)
     args.decoder_embed_dim = getattr(args, "decoder_embed_dim", 512)
     args.decoder_hidden_dim = getattr(args, "decoder_hidden_dim", 1024)
@@ -588,15 +588,16 @@ def mega_lm_adaptive_big_enwik8(args):
     base_lm_architecture(args)
 
 
-@register_model_architecture('mega_lm', 'mega_lm_enwik8_large')
-def mega_lm_adaptive_large_enwik8(args):
-    args.decoder_layers = getattr(args, 'decoder_layers', 24)
+@register_model_architecture('mega_lm', 'mega_lm_pg19_base')
+def mega_lm_base_pg19(args):
+    args.decoder_layers = getattr(args, 'decoder_layers', 12)
     args.decoder_embed_dim = getattr(args, "decoder_embed_dim", 1024)
-    args.decoder_hidden_dim = getattr(args, "decoder_hidden_dim", 1536)
-    args.decoder_ffn_embed_dim = getattr(args, "decoder_ffn_embed_dim", 1536)
-    args.decoder_z_dim = getattr(args, 'decoder_z_dim', 128)
+    args.decoder_hidden_dim = getattr(args, "decoder_hidden_dim", 2048)
+    args.decoder_ffn_embed_dim = getattr(args, "decoder_ffn_embed_dim", 2048)
+    args.decoder_z_dim = getattr(args, 'decoder_z_dim', 256)
     args.decoder_n_dim = getattr(args, 'decoder_n_dim', 16)
-    args.dropout = getattr(args, 'dropout', 0.2)
-    args.attention_dropout = getattr(args, 'attention_dropout', 0.1)
-    args.hidden_dropout = getattr(args, 'hidden_dropout', 0.1)
+    args.dropout = getattr(args, 'dropout', 0.0)
+    args.attention_dropout = getattr(args, 'attention_dropout', 0.0)
+    args.hidden_dropout = getattr(args, 'hidden_dropout', 0.0)
+    args.activation_dropout = getattr(args, "activation_dropout", 0.0)
     base_lm_architecture(args)
