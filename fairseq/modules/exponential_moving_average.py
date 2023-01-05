@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 import torch
 import torch.nn.functional as F
@@ -26,6 +26,7 @@ class MultiHeadEMA(nn.Module):
         embed_dim,
         ndim=2,
         bidirectional=False,
+        shift=True,
         truncation=None,
     ):
         super().__init__()
@@ -34,11 +35,12 @@ class MultiHeadEMA(nn.Module):
         self.ndim = ndim
         self.bidirectional = bidirectional
         self.truncation = truncation
+        self.shift = shift
         self.scale = math.sqrt(1.0 / self.ndim)
 
         kernel_dim = 2 * embed_dim if self.bidirectional else embed_dim
-        self.delta = nn.Parameter(torch.Tensor(kernel_dim, ndim, 1))
         self.alpha = nn.Parameter(torch.Tensor(kernel_dim, ndim, 1))
+        self.delta = nn.Parameter(torch.Tensor(kernel_dim, ndim, 1))
         self.beta = nn.Parameter(torch.Tensor(kernel_dim, ndim, 1))
         self.gamma = nn.Parameter(torch.Tensor(kernel_dim, ndim))
         self.omega = nn.Parameter(torch.Tensor(embed_dim))
@@ -59,8 +61,8 @@ class MultiHeadEMA(nn.Module):
     def reset_parameters(self):
         with torch.no_grad():
             # delta & alpha
-            nn.init.normal_(self.delta, mean=0.0, std=0.2)
             nn.init.normal_(self.alpha, mean=0.0, std=0.2)
+            nn.init.normal_(self.delta, mean=0.0, std=0.2)
             # beta [1, -1, 1, -1, ...] seems more stable.
             val = torch.ones(self.ndim, 1)
             if self.ndim > 1:
@@ -74,9 +76,9 @@ class MultiHeadEMA(nn.Module):
     def _calc_coeffs(self):
         self._coeffs = None
         # D x N x 1
-        p = torch.sigmoid(self.delta)
-        alpha = torch.sigmoid(self.alpha)
-        q = 1.0 - p * alpha
+        p = torch.sigmoid(self.alpha)
+        delta = torch.sigmoid(self.delta)
+        q = 1.0 - p * delta
         return p, q
 
     def _compute_kernel(self, length: int):
@@ -98,7 +100,7 @@ class MultiHeadEMA(nn.Module):
             return self._coeffs
 
     def kernel(self, length: int):
-        kernel_size = length if self.truncation is None else min(self.truncation, length)
+        kernel_size = length if self.truncation is None or self.truncation < 1 else min(self.truncation, length)
         if self.training:
             return self._compute_kernel(kernel_size)
         else:
@@ -194,21 +196,21 @@ class MultiHeadEMA(nn.Module):
         else:
             # D x L
             k = self.kernel(seq_len)
-            fft_len = seq_len
-            s = 0
             kernel_size = k.size(1)
+            fft_len = seq_len + kernel_size
             if self.bidirectional:
                 k1, k2 = torch.split(k, [self.embed_dim, self.embed_dim], dim=0)
-                # D x 2*L-1
-                k = F.pad(k1, (kernel_size - 1, 0)) + F.pad(k2.flip(-1), (0, kernel_size - 1))
-                x = F.pad(x, (kernel_size - 1, 0))
-                fft_len = fft_len + kernel_size - 1
-                s = 2 * kernel_size - 2
+                if self.shift:
+                    k2 = k2[:, 1:]
+                    k = F.pad(k1, (0, seq_len)) + F.pad(k2.flip(-1), (seq_len + 1, 0))
+                else:
+                    # D x 2*L-1
+                    k = F.pad(k1, (0, seq_len)) + F.pad(k2.flip(-1), (seq_len, 0))
 
-            k_f = torch.fft.rfft(k.float(), n=2 * fft_len)
-            x_f = torch.fft.rfft(x.float(), n=2 * fft_len)
+            k_f = torch.fft.rfft(k.float(), n=fft_len)
+            x_f = torch.fft.rfft(x.float(), n=fft_len)
             # B x D x L
-            out = torch.fft.irfft(x_f * k_f, n=2 * fft_len)[..., s:s + seq_len]
+            out = torch.fft.irfft(x_f * k_f, n=fft_len)[..., :seq_len]
             out = out.type_as(x)
             # B x D x L -> L x B x D
             out = F.silu(out.permute(2, 0, 1) + residual)
@@ -241,4 +243,5 @@ class MultiHeadEMA(nn.Module):
         return incremental_state
 
     def extra_repr(self) -> str:
-        return 'edim={}, ndim={}, bidirectional={}, trunction={}'.format(self.embed_dim, self.ndim, self.bidirectional, self.truncation)
+        return 'edim={}, ndim={}, bidirectional={}, trunction={}, shift={}'.format(self.embed_dim, self.ndim, self.bidirectional,
+                                                                                   self.truncation, self.shift)
