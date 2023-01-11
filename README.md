@@ -12,6 +12,7 @@ This is the PyTorch implementation of the Mega paper. This folder is based on th
 
 ## Updates
 1. [Oct 17th] `--fp16` training has been supported.
+2. [Jan 10th] Release [Mega Image](https://github.com/XuezheMax/mega-image).
 
 ## Setup
 This repository requires Python 3.8+ and Pytorch 1.11+.
@@ -44,7 +45,7 @@ Task | Description                          | # params | Download
 - [Machine Translation](examples/mega/README.mt.md) (coming soon)
 - [Speech Classification](examples/mega/README.sc.md)
 - [Language Modeling](examples/mega/README.lm.md)
-- [ImageNet](https://github.com/XuezheMax/mega-image) (coming soon)
+- [ImageNet](https://github.com/XuezheMax/mega-image)
 
 
 ## Code Overview
