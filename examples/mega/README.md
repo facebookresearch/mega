@@ -6,8 +6,8 @@
 Task | Description | # params | Download
 ---|---|---|---
 `LRA` | Mega on LRA tasks | -- | [mega.lra.zip](https://drive.google.com/file/d/16waj3AslaTHuCxokXJFFuRwygi8P9Wd4/view?usp=sharing)
-`WMT'14 (En-De)` | Mega-base on WMT'14 En-De | 67M | [meta.wmt14ende.base.zip]()
-`WMT'14 (De-En)` | Mega-base on WMT'14 De-En | 67M | [meta.wmt14deen.base.zip]()
+`WMT'16 (En-De)` | Mega-base on WMT'16 En-De | 67M | [meta.wmt16ende.base.zip]()
+`WMT'16 (De-En)` | Mega-base on WMT'16 De-En | 67M | [meta.wmt16deen.base.zip]()
 `SC-Raw` | Mega-base on raw Speech Commands | 300k | [meta.sc.base.zip](https://drive.google.com/file/d/1NANfdH_iBnliPfAwLlrc-B3_sJe_bM2V/view?usp=sharing)
 `SC-Raw` | Mega-big on raw Speech Commands | 476k | [meta.sc.big.zip](https://drive.google.com/file/d/1NANfdH_iBnliPfAwLlrc-B3_sJe_bM2V/view?usp=sharing)
 `WikiText-103` | Language modeling on WikiText-103 | 252M |[meta.wiki103.zip]()

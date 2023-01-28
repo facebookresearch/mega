@@ -11,7 +11,9 @@ This is the PyTorch implementation of the Mega paper. This folder is based on th
 >Xuezhe Ma*, Chunting Zhou*, Xiang Kong, Junxian He, Liangke Gui, Graham Neubig, Jonathan May, Luke Zettlemoyer
 
 ## Updates
-1. [Oct 17th] `--fp16` training has been supported.
+1. [Oct 17th 2022] `--fp16` training has been supported.
+2. [Jan 10th 2023] Release [Mega Image](https://github.com/XuezheMax/mega-image).
+3. [Jan 28th 2023] Release checkpoints of WMT'16 English to German.
 
 ## Setup
 This repository requires Python 3.8+ and Pytorch 1.11+.
@@ -31,8 +33,8 @@ For faster training, install NVIDIA's apex library following [fairseq](https://g
 Task | Description                          | # params | Download
 ---|--------------------------------------|---|---
 `LRA` | Mega on LRA tasks                    | -- | [mega.lra.zip](https://dl.fbaipublicfiles.com/mega/mega.lra.zip)
-`WMT'14 (En-De)` | Mega-base on WMT'14 En-De            | 67M | [mega.wmt14ende.base.zip]()
-`WMT'14 (De-En)` | Mega-base on WMT'14 De-En            | 67M | [mega.wmt14deen.base.zip]()
+`WMT'16 (En-De)` | Mega-base on WMT'16 En-De            | 67M | [mega.wmt16ende.base.zip]()
+`WMT'16 (De-En)` | Mega-base on WMT'16 De-En            | 67M | [mega.wmt16deen.base.zip]()
 `SC-Raw` | Mega-base/big on raw Speech Commands | 300k | [mega.sc.zip](https://dl.fbaipublicfiles.com/mega/mega.sc.zip)
 `WikiText-103` | Language modeling on WikiText-103    | 252M |[mega.wiki103.zip](https://dl.fbaipublicfiles.com/mega/wt103.zip)
 `Enwiki8` | Language modeling on Enwiki8         | 39M | [mega.enwiki8.zip](https://dl.fbaipublicfiles.com/mega/enwik8.zip)
@@ -41,10 +43,10 @@ Task | Description                          | # params | Download
 ### Experiments
 
 - [Long Range Arena](examples/mega/README.lra.md)
-- [Machine Translation](examples/mega/README.mt.md) (coming soon)
+- [Machine Translation](examples/mega/README.mt.md)
 - [Speech Classification](examples/mega/README.sc.md)
 - [Language Modeling](examples/mega/README.lm.md)
-- [ImageNet](https://github.com/XuezheMax/mega-image) (coming soon)
+- [ImageNet](https://github.com/XuezheMax/mega-image)
 
 
 ## Code Overview
